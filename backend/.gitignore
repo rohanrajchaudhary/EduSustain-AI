@@ -1,3 +1,21 @@
 node_modules/
 .env
 uploads/*
+
+# Python
+ml-service/.venv/
+ml-service/__pycache__/
+*.pyc
+
+# Node
+backend/node_modules/
+frontend/node_modules/
+
+# Environment
+.env
+backend/.env
+frontend/.env
+ml-service/.env
+
+# Uploads
+backend/uploads/*
