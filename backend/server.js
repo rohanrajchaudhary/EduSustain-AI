@@ -1,8 +1,9 @@
-```javascript
 // =====================================================
 // 🌱 EDUSUSTAIN AI - COMPLETE BACKEND SERVER
-// PRODUCTION + LOCAL DEVELOPMENT VERSION
+// PRODUCTION + LOCAL DEVELOPMENT
+// EXPRESS 5 COMPATIBLE
 // =====================================================
+
 
 // =====================================================
 // LOAD ENVIRONMENT VARIABLES FIRST
@@ -33,6 +34,7 @@ const passport = require("passport");
 
 // =====================================================
 // LOAD GOOGLE PASSPORT STRATEGY
+// IMPORTANT:
 // dotenv.config() ke BAAD load hona chahiye
 // =====================================================
 
@@ -90,11 +92,9 @@ console.log(
 // IMPORT ROUTES
 // =====================================================
 
-const authRoutes =
-  require("./routes/authRoutes");
+const authRoutes = require("./routes/authRoutes");
 
-const schoolRoutes =
-  require("./routes/schoolRoutes");
+const schoolRoutes = require("./routes/schoolRoutes");
 
 
 // =====================================================
@@ -108,17 +108,13 @@ const app = express();
 // CREATE UPLOADS FOLDER
 // =====================================================
 
-const uploadsPath =
-  path.join(
-    __dirname,
-    "uploads"
-  );
+const uploadsPath = path.join(
+  __dirname,
+  "uploads"
+);
 
-if (
-  !fs.existsSync(
-    uploadsPath
-  )
-) {
+
+if (!fs.existsSync(uploadsPath)) {
 
   fs.mkdirSync(
     uploadsPath,
@@ -147,10 +143,10 @@ if (
 // PRODUCTION FRONTEND:
 // https://edu-sustain-ai.vercel.app
 //
-// BACKEND:
+// PRODUCTION BACKEND:
 // https://edusustain-ai-backend.onrender.com
 //
-// LOCAL DEVELOPMENT:
+// LOCAL FRONTEND:
 // http://localhost:5173
 // http://localhost:5174
 // http://127.0.0.1:5173
@@ -196,7 +192,9 @@ app.use(
 
       // =================================================
       // ALLOW REQUESTS WITHOUT ORIGIN
-      // Postman / Thunder Client / Server-to-Server
+      // Postman
+      // Thunder Client
+      // Server-to-Server
       // =================================================
 
       if (!origin) {
@@ -210,7 +208,7 @@ app.use(
 
 
       // =================================================
-      // CHECK ALLOWED ORIGIN
+      // CHECK ALLOWED FRONTEND ORIGIN
       // =================================================
 
       if (
@@ -242,11 +240,9 @@ app.use(
       );
 
       return callback(
-
         new Error(
           "Not allowed by CORS"
         )
-
       );
 
     },
@@ -256,8 +252,7 @@ app.use(
     // ALLOW COOKIES / AUTH
     // =================================================
 
-    credentials:
-      true,
+    credentials: true,
 
 
     // =================================================
@@ -272,9 +267,9 @@ app.use(
 
       "PUT",
 
-      "DELETE",
-
       "PATCH",
+
+      "DELETE",
 
       "OPTIONS",
 
@@ -287,13 +282,15 @@ app.use(
 
     allowedHeaders: [
 
-      "Content-Type",
-
-      "Authorization",
+      "Origin",
 
       "X-Requested-With",
 
+      "Content-Type",
+
       "Accept",
+
+      "Authorization",
 
     ],
 
@@ -304,13 +301,37 @@ app.use(
 
     exposedHeaders: [
 
-      "Content-Length",
+      "Authorization",
 
     ],
+
+
+    // =================================================
+    // BROWSER PREFLIGHT CACHE
+    // =================================================
+
+    maxAge: 86400,
 
   })
 
 );
+
+
+// =====================================================
+// IMPORTANT
+// =====================================================
+//
+// DO NOT USE:
+//
+// app.options("*", cors());
+//
+// Express 5 mein "*" route se
+// path-to-regexp error aa sakta hai.
+//
+// cors() middleware already
+// preflight requests handle karta hai.
+//
+// =====================================================
 
 
 // =====================================================
@@ -321,8 +342,7 @@ app.use(
 
   express.json({
 
-    limit:
-      "10mb",
+    limit: "10mb",
 
   })
 
@@ -333,11 +353,9 @@ app.use(
 
   express.urlencoded({
 
-    extended:
-      true,
+    extended: true,
 
-    limit:
-      "10mb",
+    limit: "10mb",
 
   })
 
@@ -368,17 +386,11 @@ app.get(
 
   "/",
 
-  (
-    req,
-    res
-  ) => {
+  (req, res) => {
 
-    res.status(
-      200
-    ).json({
+    return res.status(200).json({
 
-      success:
-        true,
+      success: true,
 
       message:
         "EduSustain AI Backend is Running 🚀",
@@ -387,8 +399,7 @@ app.get(
         "Online",
 
       mongodb:
-        mongoose.connection
-          .readyState === 1
+        mongoose.connection.readyState === 1
           ? "Connected"
           : "Disconnected",
 
@@ -470,14 +481,12 @@ app.use(
 
 // =====================================================
 // 404 ROUTE
+// EXPRESS 5 COMPATIBLE
 // =====================================================
 
 app.use(
 
-  (
-    req,
-    res
-  ) => {
+  (req, res) => {
 
     console.log(
 
@@ -485,20 +494,15 @@ app.use(
 
     );
 
+    return res
 
-    res
-
-      .status(
-        404
-      )
+      .status(404)
 
       .json({
 
-        success:
-          false,
+        success: false,
 
         message:
-
           `Route not found: ${req.method} ${req.originalUrl}`,
 
       });
@@ -561,14 +565,11 @@ app.use(
 
       return res
 
-        .status(
-          403
-        )
+        .status(403)
 
         .json({
 
-          success:
-            false,
+          success: false,
 
           message:
             "CORS Error: Frontend origin is not allowed.",
@@ -593,8 +594,7 @@ app.use(
 
       .json({
 
-        success:
-          false,
+        success: false,
 
         message:
 
@@ -625,9 +625,7 @@ const PORT =
 // ENVIRONMENT VALIDATION
 // =====================================================
 
-if (
-  !MONGO_URI
-) {
+if (!MONGO_URI) {
 
   console.error(
     "========================================"
@@ -638,23 +636,19 @@ if (
   );
 
   console.error(
-    "Please check your .env file."
+    "Please add MONGO_URI in Render Environment Variables."
   );
 
   console.error(
     "========================================"
   );
 
-  process.exit(
-    1
-  );
+  process.exit(1);
 
 }
 
 
-if (
-  !process.env.JWT_SECRET
-) {
+if (!process.env.JWT_SECRET) {
 
   console.error(
     "========================================"
@@ -665,16 +659,14 @@ if (
   );
 
   console.error(
-    "Please add JWT_SECRET to your .env file."
+    "Please add JWT_SECRET in Render Environment Variables."
   );
 
   console.error(
     "========================================"
   );
 
-  process.exit(
-    1
-  );
+  process.exit(1);
 
 }
 
@@ -708,7 +700,7 @@ if (
   );
 
   console.warn(
-    "are added to your .env file."
+    "are added to Render Environment Variables."
   );
 
   console.warn(
@@ -747,9 +739,7 @@ mongoose.connection.on(
 
   "error",
 
-  (
-    error
-  ) => {
+  (error) => {
 
     console.error(
       "MongoDB Runtime Error ❌"
@@ -803,7 +793,7 @@ async function startServer() {
       {
 
         serverSelectionTimeoutMS:
-          5000,
+          10000,
 
       }
 
@@ -854,9 +844,19 @@ async function startServer() {
           "========================================"
         );
 
+
+        // =================================================
+        // LOCAL URL
+        // =================================================
+
         console.log(
-          `🌐 Backend: http://localhost:${PORT}`
+          `💻 Local Backend: http://localhost:${PORT}`
         );
+
+
+        // =================================================
+        // PRODUCTION URL
+        // =================================================
 
         console.log(
           "🚀 Production Backend:"
@@ -866,13 +866,23 @@ async function startServer() {
           "https://edusustain-ai-backend.onrender.com"
         );
 
+
+        // =================================================
+        // HEALTH CHECK
+        // =================================================
+
         console.log(
-          "❤️ Health:"
+          "❤️ Production Health:"
         );
 
         console.log(
           "https://edusustain-ai-backend.onrender.com/"
         );
+
+
+        // =================================================
+        // FRONTEND
+        // =================================================
 
         console.log(
           "🌐 Production Frontend:"
@@ -882,25 +892,75 @@ async function startServer() {
           "https://edu-sustain-ai.vercel.app"
         );
 
-        console.log(
-          "========================================"
-        );
+
+        // =================================================
+        // AUTH
+        // =================================================
 
         console.log(
-          "🔐 Auth:"
+          "🔐 Production Auth:"
         );
 
         console.log(
           "https://edusustain-ai-backend.onrender.com/api/auth"
         );
 
+
+        // =================================================
+        // REGISTER
+        // =================================================
+
         console.log(
-          "🏫 Schools:"
+          "📝 Register:"
+        );
+
+        console.log(
+          "https://edusustain-ai-backend.onrender.com/api/auth/register"
+        );
+
+
+        // =================================================
+        // LOGIN
+        // =================================================
+
+        console.log(
+          "🔑 Login:"
+        );
+
+        console.log(
+          "https://edusustain-ai-backend.onrender.com/api/auth/login"
+        );
+
+
+        // =================================================
+        // GOOGLE LOGIN
+        // =================================================
+
+        console.log(
+          "🔵 Google Login:"
+        );
+
+        console.log(
+          "https://edusustain-ai-backend.onrender.com/api/auth/google"
+        );
+
+
+        // =================================================
+        // SCHOOL ROUTES
+        // =================================================
+
+        console.log(
+          "🏫 Production Schools:"
         );
 
         console.log(
           "https://edusustain-ai-backend.onrender.com/api/schools"
         );
+
+
+        // =================================================
+        // ALLOWED ORIGINS
+        // =================================================
 
         console.log(
           "========================================"
@@ -913,9 +973,7 @@ async function startServer() {
 
         allowedOrigins.forEach(
 
-          (
-            origin
-          ) => {
+          (origin) => {
 
             console.log(
               "   ✅",
@@ -943,11 +1001,7 @@ async function startServer() {
 
     );
 
-  } catch (
-
-    error
-
-  ) {
+  } catch (error) {
 
     console.error(
       "========================================"
@@ -992,12 +1046,14 @@ async function startServer() {
     );
 
     console.error(
+      "4. Make sure MongoDB Atlas allows Render IP access."
+    );
+
+    console.error(
       "========================================"
     );
 
-    process.exit(
-      1
-    );
+    process.exit(1);
 
   }
 
@@ -1012,7 +1068,7 @@ startServer();
 
 
 // =====================================================
-// GRACEFUL SHUTDOWN - CTRL + C
+// GRACEFUL SHUTDOWN - SIGINT
 // =====================================================
 
 process.on(
@@ -1043,11 +1099,7 @@ process.on(
         "MongoDB connection closed successfully ✅"
       );
 
-    } catch (
-
-      error
-
-    ) {
+    } catch (error) {
 
       console.error(
         "Error closing MongoDB:",
@@ -1057,9 +1109,7 @@ process.on(
     }
 
 
-    process.exit(
-      0
-    );
+    process.exit(0);
 
   }
 
@@ -1102,11 +1152,7 @@ process.on(
         "MongoDB connection closed successfully ✅"
       );
 
-    } catch (
-
-      error
-
-    ) {
+    } catch (error) {
 
       console.error(
         "Error closing MongoDB:",
@@ -1116,11 +1162,8 @@ process.on(
     }
 
 
-    process.exit(
-      0
-    );
+    process.exit(0);
 
   }
 
 );
-```
