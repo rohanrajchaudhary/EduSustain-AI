@@ -1,11 +1,11 @@
+```javascript
 // =====================================================
 // 🌱 EDUSUSTAIN AI - COMPLETE BACKEND SERVER
+// PRODUCTION + LOCAL DEVELOPMENT VERSION
 // =====================================================
-
 
 // =====================================================
 // LOAD ENVIRONMENT VARIABLES FIRST
-// VERY IMPORTANT FOR GOOGLE OAUTH
 // =====================================================
 
 const dotenv = require("dotenv");
@@ -33,7 +33,6 @@ const passport = require("passport");
 
 // =====================================================
 // LOAD GOOGLE PASSPORT STRATEGY
-// IMPORTANT:
 // dotenv.config() ke BAAD load hona chahiye
 // =====================================================
 
@@ -44,17 +43,9 @@ require("./config/passport");
 // STARTUP LOGS
 // =====================================================
 
-console.log(
-  "========================================"
-);
-
-console.log(
-  "🌱 EduSustain AI Backend Starting..."
-);
-
-console.log(
-  "========================================"
-);
+console.log("========================================");
+console.log("🌱 EduSustain AI Backend Starting...");
+console.log("========================================");
 
 
 // =====================================================
@@ -123,7 +114,6 @@ const uploadsPath =
     "uploads"
   );
 
-
 if (
   !fs.existsSync(
     uploadsPath
@@ -153,24 +143,170 @@ if (
 // =====================================================
 // CORS CONFIGURATION
 // =====================================================
+//
+// PRODUCTION FRONTEND:
+// https://edu-sustain-ai.vercel.app
+//
+// BACKEND:
+// https://edusustain-ai-backend.onrender.com
+//
+// LOCAL DEVELOPMENT:
+// http://localhost:5173
+// http://localhost:5174
+// http://127.0.0.1:5173
+// http://127.0.0.1:5174
+//
+// =====================================================
+
+const allowedOrigins = [
+
+  // ===================================================
+  // 🚀 PRODUCTION FRONTEND
+  // ===================================================
+
+  "https://edu-sustain-ai.vercel.app",
+
+  // ===================================================
+  // 💻 LOCAL DEVELOPMENT
+  // ===================================================
+
+  "http://localhost:5173",
+
+  "http://localhost:5174",
+
+  "http://127.0.0.1:5173",
+
+  "http://127.0.0.1:5174",
+
+];
+
+
+// =====================================================
+// CORS MIDDLEWARE
+// =====================================================
 
 app.use(
 
   cors({
 
-    origin: [
+    origin: function (
+      origin,
+      callback
+    ) {
 
-      "http://localhost:5173",
+      // =================================================
+      // ALLOW REQUESTS WITHOUT ORIGIN
+      // Postman / Thunder Client / Server-to-Server
+      // =================================================
 
-      "http://localhost:5174",
+      if (!origin) {
 
-      "http://127.0.0.1:5173",
+        return callback(
+          null,
+          true
+        );
 
-      "http://127.0.0.1:5174",
+      }
+
+
+      // =================================================
+      // CHECK ALLOWED ORIGIN
+      // =================================================
+
+      if (
+        allowedOrigins.includes(
+          origin
+        )
+      ) {
+
+        console.log(
+          "✅ CORS Allowed:",
+          origin
+        );
+
+        return callback(
+          null,
+          true
+        );
+
+      }
+
+
+      // =================================================
+      // BLOCK UNKNOWN ORIGIN
+      // =================================================
+
+      console.log(
+        "❌ CORS Blocked Origin:",
+        origin
+      );
+
+      return callback(
+
+        new Error(
+          "Not allowed by CORS"
+        )
+
+      );
+
+    },
+
+
+    // =================================================
+    // ALLOW COOKIES / AUTH
+    // =================================================
+
+    credentials:
+      true,
+
+
+    // =================================================
+    // ALLOWED HTTP METHODS
+    // =================================================
+
+    methods: [
+
+      "GET",
+
+      "POST",
+
+      "PUT",
+
+      "DELETE",
+
+      "PATCH",
+
+      "OPTIONS",
 
     ],
 
-    credentials: true,
+
+    // =================================================
+    // ALLOWED REQUEST HEADERS
+    // =================================================
+
+    allowedHeaders: [
+
+      "Content-Type",
+
+      "Authorization",
+
+      "X-Requested-With",
+
+      "Accept",
+
+    ],
+
+
+    // =================================================
+    // EXPOSED RESPONSE HEADERS
+    // =================================================
+
+    exposedHeaders: [
+
+      "Content-Length",
+
+    ],
 
   })
 
@@ -210,11 +346,12 @@ app.use(
 
 // =====================================================
 // PASSPORT INITIALIZATION
-// VERY IMPORTANT FOR GOOGLE LOGIN
 // =====================================================
 
 app.use(
+
   passport.initialize()
+
 );
 
 
@@ -261,6 +398,12 @@ app.get(
           ? "Configured"
           : "Not Configured",
 
+      frontend:
+        "https://edu-sustain-ai.vercel.app",
+
+      backend:
+        "https://edusustain-ai-backend.onrender.com",
+
     });
 
   }
@@ -305,6 +448,9 @@ app.use(
 // Get All:
 // GET /api/schools/all
 //
+// Analytics:
+// GET /api/schools/analytics
+//
 // Delete All:
 // DELETE /api/schools/all
 //
@@ -334,19 +480,25 @@ app.use(
   ) => {
 
     console.log(
+
       `404 - Route not found: ${req.method} ${req.originalUrl}`
+
     );
 
+
     res
+
       .status(
         404
       )
+
       .json({
 
         success:
           false,
 
         message:
+
           `Route not found: ${req.method} ${req.originalUrl}`,
 
       });
@@ -396,11 +548,47 @@ app.use(
     );
 
 
-    res
+    // =================================================
+    // CORS ERROR
+    // =================================================
+
+    if (
+
+      error.message ===
+      "Not allowed by CORS"
+
+    ) {
+
+      return res
+
+        .status(
+          403
+        )
+
+        .json({
+
+          success:
+            false,
+
+          message:
+            "CORS Error: Frontend origin is not allowed.",
+
+        });
+
+    }
+
+
+    // =================================================
+    // GENERAL ERROR
+    // =================================================
+
+    return res
 
       .status(
+
         error.status ||
         500
+
       )
 
       .json({
@@ -409,6 +597,7 @@ app.use(
           false,
 
         message:
+
           error.message ||
           "Internal Server Error",
 
@@ -495,8 +684,11 @@ if (
 // =====================================================
 
 if (
+
   !process.env.GOOGLE_CLIENT_ID ||
+
   !process.env.GOOGLE_CLIENT_SECRET
+
 ) {
 
   console.warn(
@@ -663,36 +855,77 @@ async function startServer() {
         );
 
         console.log(
-          `🌐 Server: http://localhost:${PORT}`
+          `🌐 Backend: http://localhost:${PORT}`
         );
 
         console.log(
-          `❤️ Health: http://localhost:${PORT}/`
+          "🚀 Production Backend:"
         );
 
         console.log(
-          `🔐 Auth: http://localhost:${PORT}/api/auth`
+          "https://edusustain-ai-backend.onrender.com"
         );
 
         console.log(
-          `📝 Register: http://localhost:${PORT}/api/auth/register`
+          "❤️ Health:"
         );
 
         console.log(
-          `🔑 Login: http://localhost:${PORT}/api/auth/login`
+          "https://edusustain-ai-backend.onrender.com/"
         );
 
         console.log(
-          `🔵 Google Login: http://localhost:${PORT}/api/auth/google`
+          "🌐 Production Frontend:"
         );
 
         console.log(
-          `🔵 Google Callback: http://localhost:${PORT}/api/auth/google/callback`
+          "https://edu-sustain-ai.vercel.app"
         );
 
         console.log(
-          `🏫 Schools: http://localhost:${PORT}/api/schools`
+          "========================================"
         );
+
+        console.log(
+          "🔐 Auth:"
+        );
+
+        console.log(
+          "https://edusustain-ai-backend.onrender.com/api/auth"
+        );
+
+        console.log(
+          "🏫 Schools:"
+        );
+
+        console.log(
+          "https://edusustain-ai-backend.onrender.com/api/schools"
+        );
+
+        console.log(
+          "========================================"
+        );
+
+        console.log(
+          "🌐 Allowed Frontend Origins:"
+        );
+
+
+        allowedOrigins.forEach(
+
+          (
+            origin
+          ) => {
+
+            console.log(
+              "   ✅",
+              origin
+            );
+
+          }
+
+        );
+
 
         console.log(
           "========================================"
@@ -710,14 +943,11 @@ async function startServer() {
 
     );
 
-
   } catch (
-    error
-  ) {
 
-    // =================================================
-    // MONGODB CONNECTION ERROR
-    // =================================================
+    error
+
+  ) {
 
     console.error(
       "========================================"
@@ -750,19 +980,15 @@ async function startServer() {
     );
 
     console.error(
-      "1. Make sure MongoDB is running."
+      "1. Check MONGO_URI in Render Environment Variables."
     );
 
     console.error(
-      "2. Check MONGO_URI in .env."
+      "2. Check MongoDB Atlas Network Access."
     );
 
     console.error(
-      "3. Check MongoDB Compass connection."
-    );
-
-    console.error(
-      "4. Try mongodb://127.0.0.1:27017/edusustain"
+      "3. Check MongoDB Atlas connection string."
     );
 
     console.error(
@@ -812,12 +1038,15 @@ process.on(
 
       await mongoose.connection.close();
 
+
       console.log(
         "MongoDB connection closed successfully ✅"
       );
 
     } catch (
+
       error
+
     ) {
 
       console.error(
@@ -868,12 +1097,15 @@ process.on(
 
       await mongoose.connection.close();
 
+
       console.log(
         "MongoDB connection closed successfully ✅"
       );
 
     } catch (
+
       error
+
     ) {
 
       console.error(
@@ -891,3 +1123,4 @@ process.on(
   }
 
 );
+```
