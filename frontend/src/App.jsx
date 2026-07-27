@@ -5,8 +5,21 @@ import "./App.css";
 // API URLS
 // =========================================
 
-const API = "http://localhost:5000";
-const ML_API = "http://localhost:8000";
+// Production Backend
+// frontend/.env me:
+// VITE_API_URL=https://edusustain-ai-backend.onrender.com
+
+const API =
+  import.meta.env.VITE_API_URL ||
+  "https://edusustain-ai-backend.onrender.com";
+
+// Python ML Service
+// Abhi local development ke liye localhost
+// ML service deploy hone ke baad .env me URL change karna
+
+const ML_API =
+  import.meta.env.VITE_ML_API_URL ||
+  "http://localhost:8000";
 
 function App() {
   // =========================================
@@ -67,9 +80,7 @@ function App() {
 
   useEffect(() => {
     const handleGoogleCallback = async () => {
-      const params = new URLSearchParams(
-        window.location.search
-      );
+      const params = new URLSearchParams(window.location.search);
 
       const googleToken = params.get("token");
       const googleUser = params.get("user");
@@ -80,9 +91,7 @@ function App() {
       // =========================================
 
       if (googleError) {
-        console.error(
-          "Google authentication failed"
-        );
+        console.error("Google authentication failed");
 
         setAuthMessage(
           "Google authentication failed. Please try again."
@@ -90,7 +99,6 @@ function App() {
 
         setShowAuth(true);
 
-        // URL clean
         window.history.replaceState(
           {},
           document.title,
@@ -108,86 +116,45 @@ function App() {
         try {
           setLoading(true);
 
-          // =====================================
-          // DECODE USER
-          // =====================================
-
           const parsedUser = JSON.parse(
             decodeURIComponent(googleUser)
           );
 
-          console.log(
-            "Google User:",
-            parsedUser
-          );
+          console.log("Google User:", parsedUser);
 
-          // =====================================
           // SAVE JWT TOKEN
-          // =====================================
+          localStorage.setItem("token", googleToken);
 
-          localStorage.setItem(
-            "token",
-            googleToken
-          );
-
-          // =====================================
           // SAVE USER
-          // =====================================
-
           localStorage.setItem(
             "user",
             JSON.stringify(parsedUser)
           );
 
-          // =====================================
-          // UPDATE REACT STATE
-          // =====================================
-
+          // UPDATE STATE
           setUser(parsedUser);
-
           setShowAuth(false);
-
           setShowDashboard(true);
-
           setAuthMessage("");
 
-          // =====================================
           // LOAD MONGODB SCHOOL DATA
-          // =====================================
+          await fetchSchoolData(googleToken);
 
-          await fetchSchoolData(
-            googleToken
-          );
+          console.log("Google Login Successful ✅");
 
-          console.log(
-            "Google Login Successful ✅"
-          );
-
-          // =====================================
           // CLEAN URL
-          // =====================================
-
           window.history.replaceState(
             {},
             document.title,
             window.location.pathname
           );
         } catch (error) {
-          console.error(
-            "GOOGLE CALLBACK ERROR:",
-            error
-          );
+          console.error("GOOGLE CALLBACK ERROR:", error);
 
-          localStorage.removeItem(
-            "token"
-          );
-
-          localStorage.removeItem(
-            "user"
-          );
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
 
           setUser(null);
-
           setShowDashboard(false);
 
           setAuthMessage(
@@ -196,7 +163,6 @@ function App() {
 
           setShowAuth(true);
 
-          // URL clean
           window.history.replaceState(
             {},
             document.title,
@@ -216,15 +182,11 @@ function App() {
   // =========================================
 
   const handleGoogleLogin = () => {
-    setAuthMessage(
-      "Connecting to Google..."
-    );
-
+    setAuthMessage("Connecting to Google...");
     setLoading(true);
 
-    // Backend Google OAuth route
-    window.location.href =
-      `${API}/api/auth/google`;
+    // Production Backend Google OAuth
+    window.location.href = `${API}/api/auth/google`;
   };
 
   // =========================================
@@ -232,55 +194,34 @@ function App() {
   // =========================================
 
   useEffect(() => {
-    const savedToken =
-      localStorage.getItem("token");
+    const savedToken = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
 
-    const savedUser =
-      localStorage.getItem("user");
+    const urlParams = new URLSearchParams(
+      window.location.search
+    );
 
-    // Agar Google callback URL me token hai
-    // toh callback wala useEffect handle karega
-    const urlParams =
-      new URLSearchParams(
-        window.location.search
-      );
+    const urlToken = urlParams.get("token");
 
-    const urlToken =
-      urlParams.get("token");
-
+    // Google callback URL handle karega
     if (urlToken) {
       return;
     }
 
     // Normal saved login
-    if (
-      savedToken &&
-      savedUser
-    ) {
+    if (savedToken && savedUser) {
       try {
-        const parsedUser =
-          JSON.parse(savedUser);
+        const parsedUser = JSON.parse(savedUser);
 
         setUser(parsedUser);
-
         setShowDashboard(true);
 
-        fetchSchoolData(
-          savedToken
-        );
+        fetchSchoolData(savedToken);
       } catch (error) {
-        console.error(
-          "RESTORE LOGIN ERROR:",
-          error
-        );
+        console.error("RESTORE LOGIN ERROR:", error);
 
-        localStorage.removeItem(
-          "token"
-        );
-
-        localStorage.removeItem(
-          "user"
-        );
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
 
         setUser(null);
       }
@@ -292,10 +233,7 @@ function App() {
   // =========================================
 
   useEffect(() => {
-    localStorage.setItem(
-      "darkMode",
-      darkMode
-    );
+    localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
   // =========================================
@@ -305,35 +243,20 @@ function App() {
   const handleAuth = async () => {
     setAuthMessage("");
 
-    // =====================================
     // VALIDATION
-    // =====================================
-
     if (!email || !password) {
-      setAuthMessage(
-        "Please enter email and password"
-      );
-
+      setAuthMessage("Please enter email and password");
       return;
     }
 
     if (!isLogin) {
       if (!name) {
-        setAuthMessage(
-          "Please enter your name"
-        );
-
+        setAuthMessage("Please enter your name");
         return;
       }
 
-      if (
-        password !==
-        confirmPassword
-      ) {
-        setAuthMessage(
-          "Passwords do not match"
-        );
-
+      if (password !== confirmPassword) {
+        setAuthMessage("Passwords do not match");
         return;
       }
     }
@@ -341,18 +264,12 @@ function App() {
     try {
       setLoading(true);
 
-      // =====================================
       // ENDPOINT
-      // =====================================
-
       const endpoint = isLogin
         ? `${API}/api/auth/login`
         : `${API}/api/auth/register`;
 
-      // =====================================
       // REQUEST BODY
-      // =====================================
-
       const body = isLogin
         ? {
             email,
@@ -364,70 +281,39 @@ function App() {
             password,
           };
 
-      // =====================================
       // API REQUEST
-      // =====================================
+      const response = await fetch(endpoint, {
+        method: "POST",
 
-      const response =
-        await fetch(
-          endpoint,
-          {
-            method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        body: JSON.stringify(body),
+      });
 
-            body: JSON.stringify(
-              body
-            ),
-          }
-        );
+      const data = await response.json();
 
-      const data =
-        await response.json();
-
-      // =====================================
       // ERROR
-      // =====================================
-
       if (!response.ok) {
         setAuthMessage(
-          data.message ||
-            "Authentication failed"
+          data.message || "Authentication failed"
         );
 
         return;
       }
 
-      // =====================================
       // SAVE TOKEN
-      // =====================================
+      localStorage.setItem("token", data.token);
 
-      localStorage.setItem(
-        "token",
-        data.token
-      );
-
-      // =====================================
       // SAVE USER
-      // =====================================
-
       localStorage.setItem(
         "user",
-        JSON.stringify(
-          data.user
-        )
+        JSON.stringify(data.user)
       );
 
-      // =====================================
       // UPDATE STATE
-      // =====================================
-
-      setUser(
-        data.user
-      );
+      setUser(data.user);
 
       setAuthMessage(
         isLogin
@@ -435,36 +321,21 @@ function App() {
           : "Account created successfully 🎉"
       );
 
-      // =====================================
       // CLEAR FORM
-      // =====================================
-
       setName("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
 
-      // =====================================
       // OPEN DASHBOARD
-      // =====================================
+      setTimeout(async () => {
+        setShowAuth(false);
+        setShowDashboard(true);
 
-      setTimeout(
-        async () => {
-          setShowAuth(false);
-
-          setShowDashboard(true);
-
-          await fetchSchoolData(
-            data.token
-          );
-        },
-        700
-      );
+        await fetchSchoolData(data.token);
+      }, 700);
     } catch (error) {
-      console.error(
-        "AUTH ERROR:",
-        error
-      );
+      console.error("AUTH ERROR:", error);
 
       setAuthMessage(
         "Cannot connect to backend server"
@@ -478,14 +349,9 @@ function App() {
   // FETCH SCHOOL DATA FROM MONGODB
   // =========================================
 
-  const fetchSchoolData = async (
-    customToken = null
-  ) => {
+  const fetchSchoolData = async (customToken = null) => {
     const token =
-      customToken ||
-      localStorage.getItem(
-        "token"
-      );
+      customToken || localStorage.getItem("token");
 
     if (!token) {
       return;
@@ -494,21 +360,18 @@ function App() {
     try {
       setDataLoading(true);
 
-      const response =
-        await fetch(
-          `${API}/api/schools/all`,
-          {
-            method: "GET",
+      const response = await fetch(
+        `${API}/api/schools/all`,
+        {
+          method: "GET",
 
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        );
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      const result =
-        await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
         setUploadMessage(
@@ -519,9 +382,7 @@ function App() {
         return;
       }
 
-      setSchoolData(
-        result.data || []
-      );
+      setSchoolData(result.data || []);
     } catch (error) {
       console.error(
         "FETCH SCHOOL DATA ERROR:",
@@ -540,11 +401,8 @@ function App() {
   // FILE SELECT
   // =========================================
 
-  const handleFileChange = (
-    event
-  ) => {
-    const file =
-      event.target.files[0];
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
 
     if (!file) {
       return;
@@ -571,9 +429,7 @@ function App() {
     }
 
     const token =
-      localStorage.getItem(
-        "token"
-      );
+      localStorage.getItem("token");
 
     if (!token) {
       setUploadMessage(
@@ -590,28 +446,25 @@ function App() {
         "Uploading and analyzing..."
       );
 
-      const formData =
-        new FormData();
+      const formData = new FormData();
 
       formData.append(
         "file",
         selectedFile
       );
 
-      const response =
-        await fetch(
-          `${API}/api/schools/upload`,
-          {
-            method: "POST",
+      const response = await fetch(
+        `${API}/api/schools/upload`,
+        {
+          method: "POST",
 
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
 
-            body: formData,
-          }
-        );
+          body: formData,
+        }
+      );
 
       const result =
         await response.json();
@@ -629,9 +482,7 @@ function App() {
         `${result.message} (${result.count} records added)`
       );
 
-      setSelectedFile(
-        null
-      );
+      setSelectedFile(null);
 
       const fileInput =
         document.getElementById(
@@ -644,9 +495,7 @@ function App() {
 
       setAiResults({});
 
-      await fetchSchoolData(
-        token
-      );
+      await fetchSchoolData(token);
     } catch (error) {
       console.error(
         "UPLOAD ERROR:",
@@ -665,218 +514,190 @@ function App() {
   // AI ANALYSIS
   // =========================================
 
-  const handleAIAnalysis =
-    async (school) => {
-      const token =
-        localStorage.getItem(
-          "token"
-        );
+  const handleAIAnalysis = async (school) => {
+    const token =
+      localStorage.getItem("token");
 
-      if (!token) {
-        setUploadMessage(
-          "Please login first."
-        );
+    if (!token) {
+      setUploadMessage(
+        "Please login first."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      const schoolId =
-        school._id;
+    const schoolId =
+      school._id;
 
-      try {
-        setAiLoading(
-          (prev) => ({
-            ...prev,
+    try {
+      setAiLoading(
+        (prev) => ({
+          ...prev,
+          [schoolId]: true,
+        })
+      );
 
-            [schoolId]:
-              true,
-          })
-        );
+      setUploadMessage(
+        `🤖 AI is analyzing ${
+          school.schoolName ||
+          "school"
+        }...`
+      );
 
-        setUploadMessage(
-          `🤖 AI is analyzing ${
-            school.schoolName ||
-            "school"
-          }...`
-        );
+      const response =
+        await fetch(
+          `${ML_API}/predict`,
+          {
+            method: "POST",
 
-        const response =
-          await fetch(
-            `${ML_API}/predict`,
-            {
-              method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
 
-              headers: {
-                "Content-Type":
-                  "application/json",
+              Authorization:
+                `Bearer ${token}`,
+            },
 
-                Authorization:
-                  `Bearer ${token}`,
-              },
+            body: JSON.stringify({
+              schoolName:
+                school.schoolName,
 
-              body: JSON.stringify(
-                {
-                  schoolName:
-                    school.schoolName,
+              students:
+                Number(
+                  school.students ||
+                    0
+                ),
 
-                  students:
-                    Number(
-                      school.students ||
-                        0
-                    ),
+              waterConsumption:
+                Number(
+                  school.waterConsumption ||
+                    0
+                ),
 
-                  waterConsumption:
-                    Number(
-                      school.waterConsumption ||
-                        0
-                    ),
+              electricityConsumption:
+                Number(
+                  school.electricityConsumption ||
+                    0
+                ),
 
-                  electricityConsumption:
-                    Number(
-                      school.electricityConsumption ||
-                        0
-                    ),
+              greenArea:
+                Number(
+                  school.greenArea ||
+                    0
+                ),
 
-                  greenArea:
-                    Number(
-                      school.greenArea ||
-                        0
-                    ),
-
-                  wasteGenerated:
-                    Number(
-                      school.wasteGenerated ||
-                        0
-                    ),
-                }
-              ),
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.message ||
-              "AI analysis failed"
-          );
-        }
-
-        // =====================================
-        // SHOW AI RESULT
-        // =====================================
-
-        setAiResults(
-          (prev) => ({
-            ...prev,
-
-            [schoolId]:
-              result,
-          })
-        );
-
-        // =====================================
-        // SAVE AI RESULT TO MONGODB
-        // =====================================
-
-        try {
-          const score =
-            result.sustainabilityScore ??
-            result.score ??
-            result.prediction;
-
-          const risk =
-            result.riskLevel ??
-            result.risk ??
-            "High";
-
-          const recommendations =
-            Array.isArray(
-              result.recommendations
-            )
-              ? result.recommendations
-              : [];
-
-          if (
-            score !==
-              undefined &&
-            score !==
-              null
-          ) {
-            const saveResponse =
-              await fetch(
-                `${API}/api/schools/${schoolId}/ai-result`,
-                {
-                  method: "PUT",
-
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-
-                    Authorization:
-                      `Bearer ${token}`,
-                  },
-
-                  body: JSON.stringify(
-                    {
-                      sustainabilityScore:
-                        Number(
-                          score
-                        ),
-
-                      riskLevel:
-                        String(
-                          risk
-                        ),
-
-                      recommendations:
-                        recommendations,
-                    }
-                  ),
-                }
-              );
-
-            if (
-              !saveResponse.ok
-            ) {
-              console.warn(
-                "AI result could not be saved to MongoDB"
-              );
-            }
+              wasteGenerated:
+                Number(
+                  school.wasteGenerated ||
+                    0
+                ),
+            }),
           }
-        } catch (
-          saveError
-        ) {
-          console.error(
-            "SAVE AI RESULT ERROR:",
-            saveError
-          );
-        }
-
-        setUploadMessage(
-          "AI analysis completed successfully 🎉"
-        );
-      } catch (error) {
-        console.error(
-          "AI ANALYSIS ERROR:",
-          error
         );
 
-        setUploadMessage(
-          "AI service is not available. Please make sure Python ML server is running on port 8000."
-        );
-      } finally {
-        setAiLoading(
-          (prev) => ({
-            ...prev,
+      const result =
+        await response.json();
 
-            [schoolId]:
-              false,
-          })
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+            "AI analysis failed"
         );
       }
-    };
+
+      // SHOW AI RESULT
+      setAiResults(
+        (prev) => ({
+          ...prev,
+          [schoolId]:
+            result,
+        })
+      );
+
+      // SAVE AI RESULT TO MONGODB
+      try {
+        const score =
+          result.sustainabilityScore ??
+          result.score ??
+          result.prediction;
+
+        const risk =
+          result.riskLevel ??
+          result.risk ??
+          "High";
+
+        const recommendations =
+          Array.isArray(
+            result.recommendations
+          )
+            ? result.recommendations
+            : [];
+
+        if (
+          score !== undefined &&
+          score !== null
+        ) {
+          const saveResponse =
+            await fetch(
+              `${API}/api/schools/${schoolId}/ai-result`,
+              {
+                method: "PUT",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  Authorization:
+                    `Bearer ${token}`,
+                },
+
+                body: JSON.stringify({
+                  sustainabilityScore:
+                    Number(score),
+
+                  riskLevel:
+                    String(risk),
+
+                  recommendations:
+                    recommendations,
+                }),
+              }
+            );
+
+          if (!saveResponse.ok) {
+            console.warn(
+              "AI result could not be saved to MongoDB"
+            );
+          }
+        }
+      } catch (saveError) {
+        console.error(
+          "SAVE AI RESULT ERROR:",
+          saveError
+        );
+      }
+
+      setUploadMessage(
+        "AI analysis completed successfully 🎉"
+      );
+    } catch (error) {
+      console.error(
+        "AI ANALYSIS ERROR:",
+        error
+      );
+
+      setUploadMessage(
+        "AI service is not available. Please make sure the Python ML server is running."
+      );
+    } finally {
+      setAiLoading(
+        (prev) => ({
+          ...prev,
+          [schoolId]: false,
+        })
+      );
+    }
+  };
 
   // =========================================
   // DELETE ALL SCHOOL DATA
@@ -907,9 +728,7 @@ function App() {
       }
 
       try {
-        setDataLoading(
-          true
-        );
+        setDataLoading(true);
 
         const response =
           await fetch(
@@ -953,9 +772,7 @@ function App() {
           "Failed to connect to backend"
         );
       } finally {
-        setDataLoading(
-          false
-        );
+        setDataLoading(false);
       }
     };
 
@@ -964,24 +781,14 @@ function App() {
   // =========================================
 
   const handleLogout = () => {
-    localStorage.removeItem(
-      "token"
-    );
-
-    localStorage.removeItem(
-      "user"
-    );
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
     setUser(null);
-
     setSchoolData([]);
-
     setAiResults({});
-
     setShowDashboard(false);
-
     setShowAuth(false);
-
     setAuthMessage("");
 
     setName("");
@@ -998,9 +805,7 @@ function App() {
 
   const openDashboard = () => {
     const token =
-      localStorage.getItem(
-        "token"
-      );
+      localStorage.getItem("token");
 
     if (!token) {
       setIsLogin(true);
@@ -1016,9 +821,7 @@ function App() {
 
     setShowDashboard(true);
 
-    fetchSchoolData(
-      token
-    );
+    fetchSchoolData(token);
   };
 
   // =========================================
@@ -1030,8 +833,7 @@ function App() {
       (sum, item) =>
         sum +
         Number(
-          item.students ||
-            0
+          item.students || 0
         ),
       0
     );
@@ -1615,9 +1417,7 @@ function App() {
             className="login-btn"
             onClick={() => {
               setIsLogin(true);
-
               setAuthMessage("");
-
               setShowAuth(true);
             }}
           >
@@ -1628,9 +1428,7 @@ function App() {
             className="signup-btn"
             onClick={() => {
               setIsLogin(false);
-
               setAuthMessage("");
-
               setShowAuth(true);
             }}
           >
@@ -2043,72 +1841,41 @@ function App() {
       </section>
 
       {/* FOOTER */}
-{/*   
 
-
-{/* =========================================
-    FOOTER
-========================================= */}
-
-<footer id="about">
-
-  <div className="footer-logo">
-    🌱 EduSustain{" "}
-    <b>AI</b>
-  </div>
-
-  <p>
-    AI-powered
-    intelligence for
-    sustainable and
-    resilient schools.
-  </p>
-
-  <div className="footer-bottom">
-
-    <p>
-      © 2026 EduSustain AI.
-      Built for a sustainable future.
-    </p>
-
-    <p className="team-credit">
-      Made with ❤️ by{" "}
-      <strong>
-        Team DIVYA DRISHTI
-      </strong>
-    </p>
-
-    <p className="developer-credit">
-      Lead Developer:{" "}
-      <strong>
-        ROHAN RAJ CHAUDHARY
-      </strong>
-    </p>
-
-  </div>
-
-</footer>
-
-
-      {/* <footer id="about">
+      <footer id="about">
         <div className="footer-logo">
           🌱 EduSustain{" "}
           <b>AI</b>
-        </div> */}
+        </div>
 
-        {/* <p>
+        <p>
           AI-powered
           intelligence for
           sustainable and
           resilient schools.
-        </p> */}
+        </p>
 
-        {/* <div className="footer-bottom">
-          © 2026 EduSustain AI.
-          Built for a sustainable
-          future.
+        <div className="footer-bottom">
+          <p>
+            © 2026 EduSustain AI.
+            Built for a sustainable future.
+          </p>
+
+          <p className="team-credit">
+            Made with ❤️ by{" "}
+            <strong>
+              Team DIVYA DRISHTI
+            </strong>
+          </p>
+
+          <p className="developer-credit">
+            Lead Developer:{" "}
+            <strong>
+              ROHAN RAJ CHAUDHARY
+            </strong>
+          </p>
         </div>
-      </footer> */}
+      </footer>
 
       {/* AUTH MODAL */}
 
@@ -2118,9 +1885,7 @@ function App() {
             <button
               className="close-btn"
               onClick={() =>
-                setShowAuth(
-                  false
-                )
+                setShowAuth(false)
               }
             >
               ✕
@@ -2142,9 +1907,7 @@ function App() {
                 : "Join EduSustain AI and start analyzing your school data."}
             </p>
 
-            {/* ================================= */}
             {/* GOOGLE LOGIN */}
-            {/* ================================= */}
 
             <button
               className="google-btn"
