@@ -4,6 +4,51 @@ const GoogleStrategy =
 
 const User = require("../models/user");
 
+// =====================================================
+// GOOGLE OAUTH CALLBACK URL
+// =====================================================
+
+// Local development:
+// http://localhost:5000/api/auth/google/callback
+//
+// Production:
+// https://edusustain-ai-backend.onrender.com/api/auth/google/callback
+//
+// Render ke Environment Variables me:
+// BACKEND_URL=https://edusustain-ai-backend.onrender.com
+
+const BACKEND_URL =
+  process.env.BACKEND_URL ||
+  "http://localhost:5000";
+
+const GOOGLE_CALLBACK_URL =
+  `${BACKEND_URL}/api/auth/google/callback`;
+
+// =====================================================
+// LOG OAUTH CONFIGURATION
+// =====================================================
+
+console.log(
+  "========================================"
+);
+
+console.log(
+  "🔐 Google OAuth Configuration"
+);
+
+console.log(
+  "🌐 Backend URL:",
+  BACKEND_URL
+);
+
+console.log(
+  "🔄 Google Callback URL:",
+  GOOGLE_CALLBACK_URL
+);
+
+console.log(
+  "========================================"
+);
 
 // =====================================================
 // GOOGLE OAUTH STRATEGY
@@ -19,7 +64,7 @@ passport.use(
         process.env.GOOGLE_CLIENT_SECRET,
 
       callbackURL:
-        "http://localhost:5000/api/auth/google/callback",
+        GOOGLE_CALLBACK_URL,
     },
 
     async (
@@ -28,9 +73,7 @@ passport.use(
       profile,
       done
     ) => {
-
       try {
-
         console.log(
           "========================================"
         );
@@ -58,42 +101,37 @@ passport.use(
           "========================================"
         );
 
-
-        // ==========================================
+        // =========================================
         // GET EMAIL
-        // ==========================================
+        // =========================================
 
         const googleEmail =
           profile.emails?.[0]?.value;
 
-
         if (!googleEmail) {
-
           return done(
             new Error(
               "Google account email not available"
             ),
             null
           );
-
         }
 
-
         const email =
-          googleEmail.toLowerCase();
+          googleEmail
+            .trim()
+            .toLowerCase();
 
-
-        // ==========================================
+        // =========================================
         // GET PROFILE IMAGE
-        // ==========================================
+        // =========================================
 
         const profilePicture =
           profile.photos?.[0]?.value || "";
 
-
-        // ==========================================
-        // FIND USER BY GOOGLE ID FIRST
-        // ==========================================
+        // =========================================
+        // FIND USER BY GOOGLE ID
+        // =========================================
 
         let user =
           await User.findOne({
@@ -101,30 +139,24 @@ passport.use(
               profile.id,
           });
 
-
-        // ==========================================
+        // =========================================
         // IF NOT FOUND, FIND BY EMAIL
-        // ==========================================
+        // =========================================
 
         if (!user) {
-
           user =
             await User.findOne({
               email: email,
             });
-
         }
 
-
-        // ==========================================
-        // CREATE NEW USER
-        // ==========================================
+        // =========================================
+        // CREATE NEW GOOGLE USER
+        // =========================================
 
         if (!user) {
-
           user =
             await User.create({
-
               name:
                 profile.displayName ||
                 "Google User",
@@ -143,94 +175,96 @@ passport.use(
 
               authProvider:
                 "google",
-
             });
-
 
           console.log(
             "🆕 New Google User Created ✅"
           );
-
         }
 
-        // ==========================================
+        // =========================================
         // EXISTING USER
-        // ==========================================
+        // =========================================
 
         else {
+          let shouldSave = false;
 
-          let shouldSave =
-            false;
+          // =======================================
+          // ADD GOOGLE ID IF MISSING
+          // =======================================
 
-
-          // Add Google ID if missing
-          if (
-            !user.googleId
-          ) {
-
+          if (!user.googleId) {
             user.googleId =
               profile.id;
 
-            shouldSave =
-              true;
-
+            shouldSave = true;
           }
 
+          // =======================================
+          // UPDATE PROFILE PICTURE
+          // =======================================
 
-          // Update profile picture
           if (
             profilePicture &&
-            !user.profilePicture
+            user.profilePicture !==
+              profilePicture
           ) {
-
             user.profilePicture =
               profilePicture;
 
-            shouldSave =
-              true;
-
+            shouldSave = true;
           }
 
+          // =======================================
+          // UPDATE NAME IF EMPTY
+          // =======================================
 
-          // Save provider
+          if (
+            !user.name &&
+            profile.displayName
+          ) {
+            user.name =
+              profile.displayName;
+
+            shouldSave = true;
+          }
+
+          // =======================================
+          // SET AUTH PROVIDER
+          // =======================================
+
           if (
             user.authProvider !==
             "google"
           ) {
-
             user.authProvider =
               "google";
 
-            shouldSave =
-              true;
-
+            shouldSave = true;
           }
 
+          // =======================================
+          // SAVE CHANGES
+          // =======================================
 
-          if (
-            shouldSave
-          ) {
-
+          if (shouldSave) {
             await user.save();
-
           }
-
 
           console.log(
             "👤 Existing User Logged In ✅"
           );
-
         }
 
+        // =========================================
+        // AUTHENTICATION SUCCESS
+        // =========================================
 
         return done(
           null,
           user
         );
-
-
       } catch (error) {
-
         console.error(
           "❌ GOOGLE STRATEGY ERROR:",
           error
@@ -240,13 +274,10 @@ passport.use(
           error,
           null
         );
-
       }
-
     }
   )
 );
-
 
 // =====================================================
 // SERIALIZE USER
@@ -254,15 +285,12 @@ passport.use(
 
 passport.serializeUser(
   (user, done) => {
-
     done(
       null,
       user._id
     );
-
   }
 );
-
 
 // =====================================================
 // DESERIALIZE USER
@@ -273,9 +301,7 @@ passport.deserializeUser(
     id,
     done
   ) => {
-
     try {
-
       const user =
         await User.findById(
           id
@@ -285,11 +311,9 @@ passport.deserializeUser(
         null,
         user
       );
-
     } catch (error) {
-
       console.error(
-        "DESERIALIZE ERROR:",
+        "❌ DESERIALIZE ERROR:",
         error
       );
 
@@ -297,11 +321,13 @@ passport.deserializeUser(
         error,
         null
       );
-
     }
-
   }
 );
 
+// =====================================================
+// EXPORT PASSPORT
+// =====================================================
 
-module.exports = passport;
+module.exports =
+  passport;
